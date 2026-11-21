@@ -3,9 +3,13 @@ import type { MessageKey } from './zh-CN';
 import { easyModeEn } from '../easyMode';
 import { homeEn } from '../home';
 import { authFileListEn } from '../authFileList';
+import { autoUpdateEn } from '../autoUpdate';
 import { themeDiyEn } from '../themeDiy';
 
+import { acpEn } from '../acp';
 export const en: Record<MessageKey, string> = {
+  ...autoUpdateEn,
+  ...acpEn,
   'agents.responseLanguage.label': 'Response language',
   'agents.responseLanguage.unmanaged': 'Keep existing setting (unmanaged)',
   'agents.responseLanguage.default': 'Claude default (remove override)',
@@ -1209,6 +1213,12 @@ export const en: Record<MessageKey, string> = {
   'config.sensitiveWords.discardMessage': 'Refreshing replaces your unsaved entries with the current core configuration.',
   'config.sensitiveWords.antigravity': 'Antigravity',
   'config.sensitiveWords.devin': 'Devin',
+  'config.sensitiveWords.replacements': 'Sensitive Word Replacements',
+  'config.sensitiveWords.replacementsHint': 'Applies to system prompts only. Literal, case-insensitive matching. An empty replacement deletes matched text; spaces and line breaks in replacements are preserved.',
+  'config.sensitiveWords.target': 'Original text',
+  'config.sensitiveWords.replacement': 'Replacement',
+  'config.sensitiveWords.replacementPlaceholder': 'Leave empty to delete matched text',
+  'config.sensitiveWords.invalidReplacements': 'Enter original text for every rule. Targets within a provider must be unique (case-insensitive).',
   'config.error.emptyKey': 'The authentication key cannot be empty',
   'config.error.invalidKey': 'Use visible ASCII characters only, without spaces',
   'config.error.duplicateKey': 'This authentication key already exists',
@@ -2064,6 +2074,9 @@ export const en: Record<MessageKey, string> = {
   'apiAccess.health.checking': 'Checking…',
   'apiAccess.health.healthy': 'Healthy',
   'apiAccess.health.failed': 'Failed',
+  'apiAccess.health.budgetExhausted': 'Probe budget exhausted',
+  'apiAccess.health.budgetExhaustedDetail': 'Response received, but the generation budget was exhausted before a first body token could be measured.',
+  'apiAccess.health.budgetSummary': '{count} probe budgets exhausted',
   'apiAccess.health.noModel': 'No model is available for a health check',
   'apiAccess.health.timeout': 'The request timed out',
   'apiAccess.health.missingDirectKey': 'A directly usable plaintext API key is required to measure first-token latency',

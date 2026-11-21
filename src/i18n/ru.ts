@@ -1,6 +1,14 @@
 import type { MessageKey } from './locales/zh-CN';
+import { autoUpdateRu } from './autoUpdate';
 
 export const ru: Record<MessageKey, string> = {
+  ...autoUpdateRu,
+  'config.sensitiveWords.replacements': 'Замена чувствительных слов',
+  'config.sensitiveWords.replacementsHint': 'Только для системных промптов. Буквальное сопоставление без учёта регистра. Пустая замена удаляет совпавший текст; пробелы и переносы строк в замене сохраняются.',
+  'config.sensitiveWords.target': 'Исходный текст',
+  'config.sensitiveWords.replacement': 'Замена',
+  'config.sensitiveWords.replacementPlaceholder': 'Оставьте пустым для удаления текста',
+  'config.sensitiveWords.invalidReplacements': 'Укажите исходный текст для каждого правила. В рамках провайдера он должен быть уникальным без учёта регистра.',
   'home.catalog.refresh': "Обновить каталоги моделей",
   'home.catalog.refreshing': "Синхронизация каталогов…",
   'home.catalog.hint': "Синхронизировать удалённые каталоги моделей и их возможности без перезапуска ядра",
@@ -2236,6 +2244,9 @@ export const ru: Record<MessageKey, string> = {
   'apiAccess.health.checking': 'Проверка...',
   'apiAccess.health.healthy': 'Работоспособно',
   'apiAccess.health.failed': 'Ошибка',
+  'apiAccess.health.budgetExhausted': 'Лимит генерации проверки исчерпан',
+  'apiAccess.health.budgetExhaustedDetail': 'Ответ получен, но лимит генерации исчерпан до измерения задержки первого токена текста ответа.',
+  'apiAccess.health.budgetSummary': 'Лимит генерации проверки исчерпан: {count}',
   'apiAccess.health.noModel': 'Нет модели, доступной для проверки',
   'apiAccess.health.timeout': 'Запрос превысил время ожидания',
   'apiAccess.health.missingDirectKey': 'A directly usable plaintext Ключ API is required to measure first-token latency',

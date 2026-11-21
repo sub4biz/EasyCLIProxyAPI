@@ -3,9 +3,11 @@ import type { MessageKey } from './locales/zh-CN';
 import { easyModeJa } from './easyMode';
 import { homeJa } from './home';
 import { authFileListJa } from './authFileList';
+import { autoUpdateJa } from './autoUpdate';
 import { themeDiyJa } from './themeDiy';
 
 export const jaOverrides = {
+  ...autoUpdateJa,
   'agents.responseLanguage.label': '応答言語',
   'agents.responseLanguage.unmanaged': '既存の設定を保持（管理しない）',
   'agents.responseLanguage.default': 'Claude の既定（上書きを削除）',
@@ -1212,6 +1214,12 @@ export const jaOverrides = {
   'config.sensitiveWords.discardMessage': '更新すると、未保存の項目は現在のコア設定で上書きされます。',
   'config.sensitiveWords.antigravity': 'Antigravity',
   'config.sensitiveWords.devin': 'Devin',
+  'config.sensitiveWords.replacements': '機密語の置換',
+  'config.sensitiveWords.replacementsHint': 'システムプロンプトのみが対象です。大文字・小文字を区別せず照合します。空の置換は一致したテキストを削除します。置換内容の空白と改行は保持されます。',
+  'config.sensitiveWords.target': '元のテキスト',
+  'config.sensitiveWords.replacement': '置換内容',
+  'config.sensitiveWords.replacementPlaceholder': '空欄にすると一致したテキストを削除',
+  'config.sensitiveWords.invalidReplacements': 'すべてのルールに元のテキストを入力してください。同じプロバイダー内では大文字・小文字を問わず重複できません。',
   'config.error.emptyKey': '認証キーを入力してください',
   'config.error.invalidKey': '空白を含まない表示可能な ASCII 文字のみ使用できます',
   'config.error.duplicateKey': '同じ認証キーがすでに存在します',
@@ -2063,6 +2071,9 @@ export const jaOverrides = {
   'apiAccess.health.checking': '確認中…',
   'apiAccess.health.healthy': '正常',
   'apiAccess.health.failed': '失敗',
+  'apiAccess.health.budgetExhausted': 'プローブの生成上限に到達',
+  'apiAccess.health.budgetExhaustedDetail': '応答は受信しましたが、生成上限に達したため本文の最初のトークンの遅延を測定できませんでした。',
+  'apiAccess.health.budgetSummary': '{count} 件がプローブの生成上限に到達',
   'apiAccess.health.noModel': 'ヘルスチェックに使用できるモデルがありません',
   'apiAccess.health.timeout': 'リクエストがタイムアウトしました',
   'apiAccess.health.missingDirectKey': '初字遅延を測定するには、直接使用できる平文の API キーが必要です',

@@ -2,9 +2,13 @@ import { routingZhCN } from './routing';
 import { easyModeZhCN } from '../easyMode';
 import { homeZhCN } from '../home';
 import { authFileListZhCN } from '../authFileList';
+import { autoUpdateZhCN } from '../autoUpdate';
 import { themeDiyZhCN } from '../themeDiy';
 
+import { acpZhCN } from '../acp';
 export const zhCN: Record<string, string> = {
+  ...autoUpdateZhCN,
+  ...acpZhCN,
   'agents.responseLanguage.label': '回复语言',
   'agents.responseLanguage.unmanaged': '保留现有设置（不管理）',
   'agents.responseLanguage.default': 'Claude 默认（移除覆盖）',
@@ -1194,6 +1198,12 @@ export const zhCN: Record<string, string> = {
   'config.sensitiveWords.discardMessage': '刷新会用当前内核配置覆盖尚未保存的词条。',
   'config.sensitiveWords.antigravity': 'Antigravity',
   'config.sensitiveWords.devin': 'Devin',
+  'config.sensitiveWords.replacements': '敏感词替换',
+  'config.sensitiveWords.replacementsHint': '仅处理系统提示词；按字面匹配，不区分大小写。替换内容留空可删除匹配文本，内容中的空格和换行会保留。',
+  'config.sensitiveWords.target': '原文',
+  'config.sensitiveWords.replacement': '替换内容',
+  'config.sensitiveWords.replacementPlaceholder': '留空以删除匹配文本',
+  'config.sensitiveWords.invalidReplacements': '请填写每条规则的原文；同一供应商的原文不能重复（不区分大小写）。',
   'config.error.emptyKey': '鉴权密钥不能为空',
   'config.error.invalidKey': '只能使用 ASCII 可见字符，且不能包含空格',
   'config.error.duplicateKey': '该鉴权密钥已经存在',
@@ -2063,6 +2073,9 @@ export const zhCN: Record<string, string> = {
   'apiAccess.health.checking': '检测中…',
   'apiAccess.health.healthy': '健康',
   'apiAccess.health.failed': '失败',
+  'apiAccess.health.budgetExhausted': '探测预算耗尽',
+  'apiAccess.health.budgetExhaustedDetail': '已收到响应，但生成预算已耗尽，无法测量首个正文 Token 的延迟。',
+  'apiAccess.health.budgetSummary': '{count} 个探测预算耗尽',
   'apiAccess.health.noModel': '没有可用于健康检测的模型',
   'apiAccess.health.timeout': '请求已超时',
   'apiAccess.health.missingDirectKey': '缺少可直接使用的明文 API 密钥，无法测量首字延迟',

@@ -1,11 +1,16 @@
 import { isThemeSelection, type ThemeSelection } from '../themes/types';
 import type { AppUpdateInfo } from '../services/appUpdates';
+import { defaultAutoUpdateSettings, validateAutoUpdateSettings, type AutoUpdateStatus, type AutoUpdateSettings } from '../services/autoUpdate';
 import { applyTemplateChanges, readTemplatePath, sameTemplateValue, type TemplateConfigChange } from '../services/templateConfig';
 import { requestBucketRangeLabel } from '../services/authFileRequests';
 import { createPluginMock, type PluginWebviewMockState } from './pluginMock';
 import { createQuotaMock, createQuotaMockFiles } from './quotaMock';
 import { normalizeAuthFileTags } from '../services/authFiles';
 import { hasDeepSeekArgumentConflict, parseAgentLaunchArguments } from '../services/agentLaunchArguments';
+import type { AcpStatus } from '../services/acp';
+
+
+
 
 export type BrowserMockScenario = 'running' | 'stopped' | 'empty' | 'error';
 export type BrowserMockMode = BrowserMockScenario | 'off';
@@ -497,6 +502,8 @@ function createState(scenario: BrowserMockScenario) {
     sensitiveWords: {
       antigravitySensitiveWords: ['internal-only', 'mock-secret'],
       devinSensitiveWords: ['private-repository'],
+      antigravitySensitiveWordsReplace: { Codex: 'Assistant' } as Record<string, string>,
+      devinSensitiveWordsReplace: {} as Record<string, string>,
     },
     appUpdateInfo: {
       currentVersion: '0.2.97',
@@ -544,6 +551,8 @@ function createState(scenario: BrowserMockScenario) {
       result: null,
     },
     versionSource: { source: 'github', gitcodeAvailable: true, customMirrors: ['https://gh-proxy.example.com/'] },
+    autoUpdate: { settings: { ...defaultAutoUpdateSettings }, phase: 'disabled',
+      target: null, version: null, error: null } as AutoUpdateStatus,
     // Native groups are authoritative; legacy routes only adapt their own view.
     providerConfig: Object.fromEntries(PROVIDER_SECTIONS.map((section) => [
       section, scenario === 'empty' ? [] : groupProviderRecords(section, legacyProviderConfig[section]),
@@ -1246,6 +1255,13 @@ export function createBrowserMockRuntime(
   onPluginWebview?: (state: PluginWebviewMockState) => void,
 ): BrowserMockRuntime {
   const state = createState(scenario);
+  const acp: AcpStatus = {
+    executable: 'C:/Users/demo/AppData/Local/agy/bin/agy.exe', profile: 'C:/ECPA/acp/antigravity',
+    authenticated: false, busy: false, operation: '', models: [], selectedModel: '', error: null, latestProbe: null, upstreamEnabled: false, upstreamUrl: null,
+    accounts: [{ id: 'default', label: 'Default', email: null as string | null }], activeAccount: 'default',
+  };
+  const acpAccountModels = new Map<string, string>();
+  let acpCancelled = false;
   const applyMockUpdateChannel = (channel: string) => {
     const normalized = channel.trim() || 'stable';
     state.appUpdateInfo.updateChannel = normalized;
@@ -1452,6 +1468,11 @@ export function createBrowserMockRuntime(
       case 'get_software_settings': return clone(state.softwareSettings);
       case 'get_core_tls_settings': return clone(state.tlsSettings);
       case 'get_core_sensitive_words_settings': return clone(state.sensitiveWords);
+      case 'fetch_latest_sensitive_word_rules': return { rules: [
+        { provider: 'antigravity', kind: 'replace', target: 'Codex', replacement: 'Cloud Assistant' },
+        { provider: 'devin', kind: 'replace', target: 'Claude Code', replacement: 'Devin Assistant' },
+        { provider: 'antigravity', kind: 'obfuscate', target: 'cloud-word', replacement: '' },
+      ] };
       case 'save_core_sensitive_words_settings': {
         state.sensitiveWords = clone(asObject(payload.settings)) as typeof state.sensitiveWords;
         emit('config-files-changed', { paths: ['cpa-core/config.yaml'], errors: [] });
@@ -1511,6 +1532,22 @@ export function createBrowserMockRuntime(
         return clone(state.coreConfig);
       }
 
+      case 'get_auto_update_status': return clone(state.autoUpdate);
+      case 'set_auto_update_settings': {
+        const settings = asObject(payload.settings) as AutoUpdateSettings;
+        const invalid = validateAutoUpdateSettings(settings);
+        if (invalid) throw new Error(invalid);
+        if (state.autoUpdate.phase === 'installing') throw new Error('An update is being installed');
+        state.autoUpdate.settings = clone(settings);
+        state.autoUpdate.phase = settings.enabled ? 'waiting-update' : 'disabled';
+        return clone(state.autoUpdate);
+      }
+      case 'retry_auto_update': {
+        if (state.autoUpdate.phase === 'installing') throw new Error('An update is being installed');
+        state.autoUpdate.error = null;
+        state.autoUpdate.phase = 'waiting-update';
+        return clone(state.autoUpdate);
+      }
       case 'check_app_update': return clone(state.appUpdateInfo);
       case 'refresh_managed_codex_model_catalog': return false;
       case 'get_app_update_task': return clone(state.appUpdateTask);
@@ -1623,6 +1660,67 @@ export function createBrowserMockRuntime(
         return { firstTokenLatencyMs: 184, responseLatencyMs: 642 };
       }
 
+      case 'get_acp_status': return clone(acp);
+      case 'set_acp_upstream_enabled': {
+        if (acp.busy) throw new Error('An ACP operation is already running');
+        if (payload.enabled && !acp.authenticated) throw new Error('Connect ACP first');
+        acp.upstreamEnabled = payload.enabled === true;
+        acp.upstreamUrl = acp.upstreamEnabled ? 'http://127.0.0.1:18319/v1' : null;
+        acp.latestProbe = null;
+        return clone(acp);
+      }
+      case 'add_acp_account': {
+        if (acp.busy) throw new Error('An ACP operation is already running');
+        const id = 'mock-account-' + acp.accounts.length;
+        acpAccountModels.set(acp.activeAccount, acp.selectedModel);
+        acp.accounts.push({ id, label: readString(payload.label).trim(), email: 'work.acp@example.test' });
+        acp.activeAccount = id; acp.selectedModel = '';
+        acp.latestProbe = null;
+        acp.authenticated = true;
+        acp.selectedModel = acp.models[0]?.id || 'gemini-4-argon-medium';
+        return clone(acp);
+      }
+      case 'switch_acp_account': {
+        if (acp.busy) throw new Error('An ACP operation is already running');
+        const id = readString(payload.accountId);
+        if (!acp.accounts.some(account => account.id === id)) throw new Error('Unknown ACP account');
+        acpAccountModels.set(acp.activeAccount, acp.selectedModel);
+        acp.activeAccount = id; acp.selectedModel = acpAccountModels.get(id) || acp.models[0]?.id || '';
+        acp.latestProbe = null;
+        return clone(acp);
+      }
+      case 'relogin_acp_account':
+      case 'acp_connect': {
+        if (acp.busy) throw new Error('An ACP operation is already running');
+        const account = acp.accounts.find(account => account.id === acp.activeAccount);
+        if (account) account.email = account.id === 'default' ? 'personal.acp@example.test' : 'work.acp@example.test';
+        Object.assign(acp, { authenticated: true, error: null, latestProbe: null,
+          models: [{ id: 'gemini-4-argon-medium', name: 'Gemini 4 Argon (Medium)' }, { id: 'gemini-3.8-flash-low', name: 'Gemini 3.8 Flash (Low)' }] });
+        if (!acp.models.some(model => model.id === acp.selectedModel)) acp.selectedModel = acp.models[0].id;
+        return clone(acp);
+      }
+      case 'select_acp_model': {
+        if (acp.busy) throw new Error('Wait for the current ACP operation to finish');
+        if (!acp.models.some(model => model.id === payload.model)) throw new Error('Refresh available ACP models first');
+        acp.selectedModel = readString(payload.model);
+        acp.latestProbe = null;
+        return clone(acp);
+      }
+      case 'test_acp_connection': {
+        if (acp.busy) throw new Error('An ACP operation is already running');
+        if (!acp.authenticated || !acp.selectedModel) throw new Error('Refresh available ACP models first');
+        acp.busy = true; acp.operation = 'test'; acp.error = null; acp.latestProbe = null; acpCancelled = false;
+        try {
+          await sleep(Math.max(delayMs, 250));
+          if (acpCancelled) throw new Error('ACP request cancelled');
+          acp.latestProbe = { text: 'ACP_OK', model: acp.selectedModel, durationMs: 9214, firstTextMs: 8780, stopReason: 'end_turn' };
+          return clone(acp.latestProbe);
+        } catch (cause) {
+          acp.error = cause instanceof Error ? cause.message : String(cause);
+          throw cause;
+        } finally { acp.busy = false; acp.operation = ''; }
+      }
+      case 'cancel_acp_operation': acpCancelled = true; return null;
       case 'list_oauth_browsers': return [
         { id: 'default', label: 'System default browser' },
         { id: 'chrome', label: 'Google Chrome (Mock)' },
